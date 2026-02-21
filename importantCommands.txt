@@ -1,2 +1,5 @@
  // This is to run the server
- java -jar target/redisolar-1.0.jar server config.yml
+    java -jar target/redisolar-1.0.jar server config.yml
+
+//  This is to load the data
+    java -jar target/redisolar-1.0.jar load
