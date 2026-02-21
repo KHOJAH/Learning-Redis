@@ -1,0 +1,2 @@
+ // This is to run the server
+ java -jar target/redisolar-1.0.jar server config.yml
