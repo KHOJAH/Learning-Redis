@@ -33,10 +33,19 @@ public class SiteGeoDaoRedisImpl implements SiteGeoDao {
         try (Jedis jedis = jedisPool.getResource()) {
             Set<String> keys = jedis.zrange(RedisSchema.getSiteGeoKey(), 0, -1);
             Set<Site> sites = new HashSet<>(keys.size());
+            Pipeline pipeline = jedis.pipelined();
+            
+            List<Response<Map<String, String>>> responses = new ArrayList<>();
             for (String key : keys) {
-                Map<String, String> site = jedis.hgetAll(key);
-                if (!site.isEmpty()) {
-                    sites.add(new Site(site));
+                Response<Map<String, String>> mapResponse = pipeline.hgetAll(key);
+                responses.add(mapResponse);
+            }
+            pipeline.sync();
+            
+            for (Response<Map<String, String>> response : responses) {
+                Map<String, String> fields = response.get();
+                if (!fields.isEmpty()) {
+                    sites.add(new Site(fields));
                 }
             }
             return sites;
@@ -53,9 +62,9 @@ public class SiteGeoDaoRedisImpl implements SiteGeoDao {
     }
 
     // Challenge #5
-     private Set<Site> findSitesByGeoWithCapacity(GeoQuery query) {
-         return Collections.emptySet();
-     }
+    private Set<Site> findSitesByGeoWithCapacity(GeoQuery query) {
+        return Collections.emptySet();
+    }
     // Comment out the above, and uncomment what's below
 //    private Set<Site> findSitesByGeoWithCapacity(GeoQuery query) {
 //        Set<Site> results = new HashSet<>();
@@ -109,18 +118,18 @@ public class SiteGeoDaoRedisImpl implements SiteGeoDao {
 
     @Override
     public void insert(Site site) {
-         try (Jedis jedis = jedisPool.getResource()) {
-             String key = RedisSchema.getSiteHashKey(site.getId());
-             jedis.hmset(key, site.toMap());
+        try (Jedis jedis = jedisPool.getResource()) {
+            String key = RedisSchema.getSiteHashKey(site.getId());
+            jedis.hmset(key, site.toMap());
 
-             if (site.getCoordinate() == null) {
-                 throw new IllegalArgumentException("Coordinate required for Geo " +
-                         "insert.");
-             }
-             Double longitude = site.getCoordinate().getGeoCoordinate().getLongitude();
-             Double latitude = site.getCoordinate().getGeoCoordinate().getLatitude();
-             jedis.geoadd(RedisSchema.getSiteGeoKey(), longitude, latitude,
-                     key);
-         }
+            if (site.getCoordinate() == null) {
+                throw new IllegalArgumentException("Coordinate required for Geo " +
+                        "insert.");
+            }
+            Double longitude = site.getCoordinate().getGeoCoordinate().getLongitude();
+            Double latitude = site.getCoordinate().getGeoCoordinate().getLatitude();
+            jedis.geoadd(RedisSchema.getSiteGeoKey(), longitude, latitude,
+                    key);
+        }
     }
 }
