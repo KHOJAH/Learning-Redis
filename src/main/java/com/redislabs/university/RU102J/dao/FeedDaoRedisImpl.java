@@ -1,12 +1,13 @@
 package com.redislabs.university.RU102J.dao;
 
 import com.redislabs.university.RU102J.api.MeterReading;
-import redis.clients.jedis.*;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.StreamEntry;
+import redis.clients.jedis.StreamEntryID;
 
-import java.nio.channels.Pipe;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FeedDaoRedisImpl implements FeedDao {
 
@@ -22,6 +23,10 @@ public class FeedDaoRedisImpl implements FeedDao {
     @Override
     public void insert(MeterReading meterReading) {
         // START Challenge #6
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.xadd(RedisSchema.getGlobalFeedKey(), StreamEntryID.NEW_ENTRY, meterReading.toMap());
+            jedis.xadd(RedisSchema.getFeedKey(meterReading.getSiteId()), StreamEntryID.NEW_ENTRY, meterReading.toMap());
+        }
         // END Challenge #6
     }
 
